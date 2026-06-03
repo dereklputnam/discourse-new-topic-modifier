@@ -84,9 +84,7 @@ export default apiInitializer("1.8.0", (api) => {
   function findMatchingRule(categoryId) {
     const rules = settings.rules || [];
     for (const rule of rules) {
-      console.log("[NTG] Rule", rule.id, "enabled:", rule.enabled);
       if (rule.enabled !== true) {
-        console.log("[NTG] Rule", rule.id, "not enabled, skipping");
         continue;
       }
       if (
@@ -136,19 +134,13 @@ export default apiInitializer("1.8.0", (api) => {
   function injectButton(rule) {
     const realBtn = getCreateTopicButton();
     if (!realBtn) {
-      console.log("[NTG] ERROR: No #create-topic or #custom-create-topic button found");
       return;
     }
 
-    console.log("[NTG] Found real button:", realBtn.id);
-
-    // Hide real button via body class — persists through Discourse re-renders
     document.body.classList.add(BODY_CLASS);
-    console.log("[NTG] Added body class:", BODY_CLASS, "— real button should be hidden");
 
     const tooltipHtml = renderLinks(rule.tooltip_message || "");
 
-    // Build the injected button from the real button's classes + HTML
     const btn = document.createElement("button");
     btn.id = INJECTED_BTN_ID;
     btn.className = realBtn.className;
@@ -156,17 +148,13 @@ export default apiInitializer("1.8.0", (api) => {
     btn.setAttribute("aria-disabled", "true");
     btn.setAttribute("type", "button");
 
-
-    // Override label text if custom text is set
     if (rule.button_text) {
       const label = btn.querySelector(".d-button-label");
       if (label) {
         label.textContent = rule.button_text;
-        console.log("[NTG] Button text set to:", rule.button_text);
       }
     }
 
-    // Swap icon if specified in rule, otherwise keep the real button's icon
     if (rule.icon && rule.icon !== "default") {
       const iconEl = btn.querySelector(".d-icon");
       if (iconEl) {
@@ -181,34 +169,26 @@ export default apiInitializer("1.8.0", (api) => {
           useEl.setAttribute("href", `#${rule.icon}`);
           useEl.setAttribute("xlink:href", `#${rule.icon}`);
         }
-        console.log("[NTG] Icon set to:", rule.icon);
       }
     }
 
-    // Find subscribe button by aria-label, title, or text content within parent container
     const parent = realBtn.closest(".navigation-controls, .list-controls, .nav-controls") || realBtn.parentNode;
-    console.log("[NTG] Parent container:", parent.className);
 
     const subscribeEl = Array.from(parent.querySelectorAll("button, [class*='subscribe']")).find((el) => {
       const label = el.getAttribute("aria-label") || el.getAttribute("title") || el.textContent || "";
       return label.toLowerCase().includes("subscribe");
     });
 
-    // Insert after subscribe element or its closest block-level wrapper within parent
     const insertAnchor = subscribeEl?.closest(".d-combo-button, .btn-group") || subscribeEl;
-    console.log("[NTG] Subscribe element found:", insertAnchor?.className || "none");
 
     if (insertAnchor && parent.contains(insertAnchor)) {
       insertAnchor.parentNode.insertBefore(btn, insertAnchor.nextSibling);
-      console.log("[NTG] Injected after subscribe element");
     } else {
       realBtn.parentNode.insertBefore(btn, realBtn.nextSibling);
-      console.log("[NTG] Injected after real button (no subscribe found)");
     }
 
     btn.addEventListener("click", (e) => e.preventDefault());
 
-    // Popover handling
     let popover = null;
     let popoverTimeout = null;
 
@@ -217,7 +197,6 @@ export default apiInitializer("1.8.0", (api) => {
       if (popover) return;
       popover = createPopover(tooltipHtml);
       positionPopover(popover, btn);
-      console.log("[NTG] Popover shown");
     }
 
     function hidePopover() {
@@ -250,18 +229,11 @@ export default apiInitializer("1.8.0", (api) => {
   }
 
   api.onPageChange(() => {
-    console.log("[NTG] ========== PAGE CHANGE ==========");
-    console.log("[NTG] User:", currentUser.username, "| Groups:", currentUser.groups?.map(g => `${g.name}(${g.id})`).join(", "));
     cleanup();
     setTimeout(() => {
-      const categoryId = getCurrentCategoryId();
-      console.log("[NTG] Category ID:", categoryId);
-      const rule = findMatchingRule(categoryId);
+      const rule = findMatchingRule(getCurrentCategoryId());
       if (rule) {
-        console.log("[NTG] ✓ RULE MATCHED:", rule.id);
         injectButton(rule);
-      } else {
-        console.log("[NTG] ✗ No matching rule");
       }
     }, 150);
   });

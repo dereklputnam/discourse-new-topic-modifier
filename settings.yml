@@ -44,6 +44,7 @@ rules:
         type: string
         required: true
         textarea: true
+        description: "Supports Markdown links: [link text](https://example.com)"
         validations:
           min_length: 5
           max_length: 500
