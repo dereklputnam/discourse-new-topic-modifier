@@ -85,6 +85,7 @@ export default apiInitializer("1.8.0", (api) => {
     const rules = settings.rules || [];
     for (const rule of rules) {
       if (
+        rule.enabled !== false &&
         userMatchesGroups(rule.enabled_groups) &&
         categoryMatches(rule, categoryId)
       ) {
@@ -161,21 +162,23 @@ export default apiInitializer("1.8.0", (api) => {
       }
     }
 
-    // Replace pencil icon with plus icon to match standard New Topic button
-    // SVG elements use SVGAnimatedString for className — must use classList
-    const iconEl = btn.querySelector(".d-icon");
-    if (iconEl) {
-      const oldIconClass = Array.from(iconEl.classList).find((c) => c.startsWith("d-icon-"));
-      if (oldIconClass) {
-        iconEl.classList.remove(oldIconClass);
-        iconEl.classList.add("d-icon-plus");
+    // Swap icon if specified in rule, otherwise keep the real button's icon
+    if (rule.icon) {
+      const iconEl = btn.querySelector(".d-icon");
+      if (iconEl) {
+        // SVG elements use SVGAnimatedString for className — must use classList
+        const oldIconClass = Array.from(iconEl.classList).find((c) => c.startsWith("d-icon-"));
+        if (oldIconClass) {
+          iconEl.classList.remove(oldIconClass);
+          iconEl.classList.add(`d-icon-${rule.icon}`);
+        }
+        const useEl = iconEl.querySelector("use");
+        if (useEl) {
+          useEl.setAttribute("href", `#${rule.icon}`);
+          useEl.setAttribute("xlink:href", `#${rule.icon}`);
+        }
+        console.log("[NTG] Icon set to:", rule.icon);
       }
-      const useEl = iconEl.querySelector("use");
-      if (useEl) {
-        useEl.setAttribute("href", "#plus");
-        useEl.setAttribute("xlink:href", "#plus");
-      }
-      console.log("[NTG] Icon replaced with plus");
     }
 
     // Find subscribe button by aria-label, title, or text content within parent container

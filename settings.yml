@@ -11,6 +11,9 @@ rules:
         required: true
         validations:
           min_length: 3
+      enabled:
+        type: boolean
+        default: true
       enabled_groups:
         type: groups
         required: true
@@ -23,6 +26,19 @@ rules:
       button_text:
         type: string
         description: "Optional custom text for the button. Leave empty to keep default."
+      icon:
+        type: enum
+        default: ""
+        choices:
+          - ""
+          - "pencil-alt"
+          - "plus"
+          - "lock"
+          - "ban"
+          - "circle-info"
+          - "arrow-up-right-from-square"
+          - "envelope"
+          - "hand"
       tooltip_message:
         type: string
         required: true
