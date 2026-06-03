@@ -17,8 +17,12 @@ export default apiInitializer("1.8.0", (api) => {
     const style = document.createElement("style");
     style.id = "ntg-styles";
     style.textContent = `
-      #create-topic.${HIDDEN_CLASS} {
+      #create-topic.${HIDDEN_CLASS},
+      #custom-create-topic.${HIDDEN_CLASS} {
         display: none !important;
+      }
+      #ntg-replacement-btn {
+        border: 2px dashed #ff6b6b !important;
       }
     `;
     document.head.appendChild(style);
@@ -134,19 +138,23 @@ export default apiInitializer("1.8.0", (api) => {
   let activeObserver = null;
 
   function getCreateTopicButton() {
-    return document.getElementById("create-topic") || document.getElementById("custom-create-topic");
+    const btn = document.getElementById("create-topic") || document.getElementById("custom-create-topic");
+    console.log("[NTG] getCreateTopicButton() returned:", btn?.id || "null");
+    return btn;
   }
 
   function injectReplacementButton(rule) {
     const realBtn = getCreateTopicButton();
     if (!realBtn) {
-      console.log("[NTG] No #create-topic or #custom-create-topic button found");
+      console.log("[NTG] ERROR: No #create-topic or #custom-create-topic button found");
       return;
     }
 
+    console.log("[NTG] Found button:", realBtn.id, "Adding hidden class...");
     const tooltipHtml = renderLinks(rule.tooltip_message || "");
 
     realBtn.classList.add(HIDDEN_CLASS);
+    console.log("[NTG] Button hidden:", !realBtn.offsetParent);
     console.log("[NTG] Rule matched for group(s):", rule.enabled_groups, "Category:", rule.selected_categories || "all");
 
     // Use MutationObserver to keep the button hidden as Discourse re-renders
@@ -154,9 +162,12 @@ export default apiInitializer("1.8.0", (api) => {
       activeObserver.disconnect();
     }
 
+    let observerFires = 0;
     activeObserver = new MutationObserver(() => {
       const btn = getCreateTopicButton();
       if (btn && !btn.classList.contains(HIDDEN_CLASS)) {
+        observerFires++;
+        console.log(`[NTG] Observer fire #${observerFires}: re-hiding button`);
         btn.classList.add(HIDDEN_CLASS);
       }
     });
@@ -167,6 +178,7 @@ export default apiInitializer("1.8.0", (api) => {
       subtree: true,
       childList: true,
     });
+    console.log("[NTG] MutationObserver active");
 
     const btn = document.createElement("button");
     btn.id = INJECTED_BTN_ID;
@@ -203,15 +215,19 @@ export default apiInitializer("1.8.0", (api) => {
   }
 
   api.onPageChange(() => {
+    console.log("[NTG] ========== PAGE CHANGE ==========");
+    console.log("[NTG] Current user:", currentUser.username);
+    console.log("[NTG] User groups:", currentUser.groups?.map(g => ({ id: g.id, name: g.name })));
     cleanup();
     setTimeout(() => {
       const categoryId = getCurrentCategoryId();
-      console.log("[NTG] Page change detected, current category:", categoryId);
+      console.log("[NTG] Current category ID:", categoryId);
       const rule = findMatchingRule(categoryId);
       if (rule) {
+        console.log("[NTG] ✓ RULE MATCHED:", rule.id);
         injectReplacementButton(rule);
       } else {
-        console.log("[NTG] No matching rule for this user/category");
+        console.log("[NTG] ✗ No matching rule for this user/category");
       }
     }, 150);
   });
