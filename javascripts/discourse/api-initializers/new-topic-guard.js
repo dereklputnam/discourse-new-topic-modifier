@@ -116,12 +116,11 @@ export default apiInitializer("1.8.0", (api) => {
       position: "absolute",
       zIndex: "9999",
       background: "var(--secondary)",
-      border: "1px solid var(--primary-medium)",
+      border: "1px solid var(--primary)",
       borderRadius: "4px",
       padding: "10px 14px",
       maxWidth: "280px",
       color: "var(--primary)",
-      fontSize: "0.875em",
       lineHeight: "1.4",
       boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
     });
