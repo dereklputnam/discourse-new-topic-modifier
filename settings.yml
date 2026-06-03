@@ -20,6 +20,9 @@ rules:
         type: categories
       include_subcategories:
         type: boolean
+      button_text:
+        type: string
+        description: "Optional custom text for the button. Leave empty to keep default."
       tooltip_message:
         type: string
         required: true

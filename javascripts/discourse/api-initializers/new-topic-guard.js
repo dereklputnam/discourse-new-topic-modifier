@@ -8,31 +8,25 @@ export default apiInitializer("1.8.0", (api) => {
 
   const site = api.container.lookup("service:site");
 
-  const INJECTED_BTN_ID = "ntg-replacement-btn";
   const POPOVER_ID = "ntg-popover";
-  const HIDDEN_CLASS = "ntg-hidden";
 
-  // Inject CSS to hide the real button when rule matches
+  // Inject CSS for disabled button styling
   if (!document.getElementById("ntg-styles")) {
     const style = document.createElement("style");
     style.id = "ntg-styles";
     style.textContent = `
-      #create-topic.${HIDDEN_CLASS},
-      #custom-create-topic.${HIDDEN_CLASS} {
-        display: none !important;
-        visibility: hidden !important;
-        position: absolute !important;
-        left: -9999px !important;
+      .ntg-disabled {
+        opacity: 0.5 !important;
+        cursor: not-allowed !important;
       }
-      #ntg-replacement-btn {
-        border: 2px dashed #ff6b6b !important;
+      #${POPOVER_ID} a {
+        color: var(--tertiary);
+        text-decoration: underline;
       }
     `;
     document.head.appendChild(style);
   }
 
-  // Convert [text](url) Markdown links to <a> tags and newlines to <br>.
-  // Kept local to avoid async cook() complexity — only link syntax is needed.
   function renderLinks(text) {
     return text
       .replace(
@@ -40,19 +34,6 @@ export default apiInitializer("1.8.0", (api) => {
         '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
       )
       .replace(/\n/g, "<br>");
-  }
-
-  function cleanup() {
-    if (activeObserver) {
-      activeObserver.disconnect();
-      activeObserver = null;
-    }
-    document.getElementById(INJECTED_BTN_ID)?.remove();
-    document.getElementById(POPOVER_ID)?.remove();
-    const realBtn = getCreateTopicButton();
-    if (realBtn) {
-      realBtn.classList.remove(HIDDEN_CLASS);
-    }
   }
 
   function getCurrentCategoryId() {
@@ -107,6 +88,10 @@ export default apiInitializer("1.8.0", (api) => {
     return null;
   }
 
+  function getCreateTopicButton() {
+    return document.getElementById("create-topic") || document.getElementById("custom-create-topic");
+  }
+
   function positionPopover(popover, anchorBtn) {
     const rect = anchorBtn.getBoundingClientRect();
     const popoverHeight = popover.offsetHeight;
@@ -137,69 +122,36 @@ export default apiInitializer("1.8.0", (api) => {
     return popover;
   }
 
-  let activeObserver = null;
-
-  function getCreateTopicButton() {
-    const btn = document.getElementById("create-topic") || document.getElementById("custom-create-topic");
-    console.log("[NTG] getCreateTopicButton() returned:", btn?.id || "null");
-    return btn;
-  }
-
-  function injectReplacementButton(rule) {
+  function modifyButtonForRule(rule) {
     const realBtn = getCreateTopicButton();
     if (!realBtn) {
       console.log("[NTG] ERROR: No #create-topic or #custom-create-topic button found");
       return;
     }
 
-    console.log("[NTG] Found button:", realBtn.id, "Adding hidden class...");
+    console.log("[NTG] Found button:", realBtn.id, "Modifying for rule...");
     const tooltipHtml = renderLinks(rule.tooltip_message || "");
 
-    realBtn.classList.add(HIDDEN_CLASS);
-    console.log("[NTG] Button hidden:", !realBtn.offsetParent);
+    realBtn.classList.add("ntg-disabled");
     console.log("[NTG] Rule matched for group(s):", rule.enabled_groups, "Category:", rule.selected_categories || "all");
 
-    // Use MutationObserver to keep the button hidden as Discourse re-renders
-    if (activeObserver) {
-      activeObserver.disconnect();
-    }
-
-    let observerFires = 0;
-    activeObserver = new MutationObserver(() => {
-      const btn = getCreateTopicButton();
-      if (btn && !btn.classList.contains(HIDDEN_CLASS)) {
-        observerFires++;
-        console.log(`[NTG] Observer fire #${observerFires}: re-hiding button`);
-        btn.classList.add(HIDDEN_CLASS);
+    // Update button text if custom text is provided
+    if (rule.button_text) {
+      const label = realBtn.querySelector(".d-button-label");
+      if (label) {
+        label.textContent = rule.button_text;
+        console.log("[NTG] Button text updated to:", rule.button_text);
       }
-    });
-
-    activeObserver.observe(document.body, {
-      attributes: true,
-      attributeFilter: ["class", "style"],
-      subtree: true,
-      childList: true,
-    });
-    console.log("[NTG] MutationObserver active");
-
-    const btn = document.createElement("button");
-    btn.id = INJECTED_BTN_ID;
-    btn.className = realBtn.className;
-    btn.innerHTML = realBtn.innerHTML;
-    btn.setAttribute("aria-disabled", "true");
-
-    Object.assign(btn.style, {
-      opacity: "0.5",
-      cursor: rule.redirect_url ? "pointer" : "not-allowed",
-    });
-
-    if (rule.redirect_url) {
-      btn.addEventListener("click", () => {
-        window.location.href = rule.redirect_url;
-      });
-    } else {
-      btn.addEventListener("click", (e) => e.preventDefault());
     }
+
+    // Prevent composer from opening on click
+    realBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (rule.redirect_url) {
+        window.location.href = rule.redirect_url;
+      }
+    }, true);
 
     let popover = null;
     let popoverTimeout = null;
@@ -208,7 +160,7 @@ export default apiInitializer("1.8.0", (api) => {
       clearTimeout(popoverTimeout);
       if (popover) return;
       popover = createPopover(tooltipHtml);
-      positionPopover(popover, btn);
+      positionPopover(popover, realBtn);
       console.log("[NTG] Popover shown");
     }
 
@@ -220,8 +172,8 @@ export default apiInitializer("1.8.0", (api) => {
       }, 200);
     }
 
-    btn.addEventListener("mouseenter", showPopover);
-    btn.addEventListener("mouseleave", hidePopover);
+    realBtn.addEventListener("mouseenter", showPopover);
+    realBtn.addEventListener("mouseleave", hidePopover);
 
     // Keep popover visible when hovering over it
     document.addEventListener("mouseover", (e) => {
@@ -231,12 +183,18 @@ export default apiInitializer("1.8.0", (api) => {
     });
 
     document.addEventListener("mouseout", (e) => {
-      if (e.target.closest(`#${POPOVER_ID}`) && !e.target.closest(`#${INJECTED_BTN_ID}`)) {
+      if (e.target.closest(`#${POPOVER_ID}`) && !e.target.closest(`#create-topic, #custom-create-topic`)) {
         hidePopover();
       }
     });
+  }
 
-    realBtn.parentNode.insertBefore(btn, realBtn.nextSibling);
+  function cleanup() {
+    document.getElementById(POPOVER_ID)?.remove();
+    const realBtn = getCreateTopicButton();
+    if (realBtn) {
+      realBtn.classList.remove("ntg-disabled");
+    }
   }
 
   api.onPageChange(() => {
@@ -250,7 +208,7 @@ export default apiInitializer("1.8.0", (api) => {
       const rule = findMatchingRule(categoryId);
       if (rule) {
         console.log("[NTG] ✓ RULE MATCHED:", rule.id);
-        injectReplacementButton(rule);
+        modifyButtonForRule(rule);
       } else {
         console.log("[NTG] ✗ No matching rule for this user/category");
       }
