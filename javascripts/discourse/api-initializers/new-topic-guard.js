@@ -162,9 +162,14 @@ export default apiInitializer("1.8.0", (api) => {
     }
 
     // Replace pencil icon with plus icon to match standard New Topic button
+    // SVG elements use SVGAnimatedString for className — must use classList
     const iconEl = btn.querySelector(".d-icon");
     if (iconEl) {
-      iconEl.className = iconEl.className.replace(/d-icon-\S+/, "d-icon-plus");
+      const oldIconClass = Array.from(iconEl.classList).find((c) => c.startsWith("d-icon-"));
+      if (oldIconClass) {
+        iconEl.classList.remove(oldIconClass);
+        iconEl.classList.add("d-icon-plus");
+      }
       const useEl = iconEl.querySelector("use");
       if (useEl) {
         useEl.setAttribute("href", "#plus");
