@@ -36,6 +36,10 @@ export default apiInitializer("1.8.0", (api) => {
   }
 
   function cleanup() {
+    if (activeObserver) {
+      activeObserver.disconnect();
+      activeObserver = null;
+    }
     document.getElementById(INJECTED_BTN_ID)?.remove();
     document.getElementById(POPOVER_ID)?.remove();
     const realBtn = document.getElementById("create-topic");
@@ -127,6 +131,8 @@ export default apiInitializer("1.8.0", (api) => {
     return popover;
   }
 
+  let activeObserver = null;
+
   function injectReplacementButton(rule) {
     const realBtn = document.getElementById("create-topic");
     if (!realBtn) {
@@ -138,6 +144,25 @@ export default apiInitializer("1.8.0", (api) => {
 
     realBtn.classList.add(HIDDEN_CLASS);
     console.log("[NTG] Rule matched for group(s):", rule.enabled_groups, "Category:", rule.selected_categories || "all");
+
+    // Use MutationObserver to keep the button hidden as Discourse re-renders
+    if (activeObserver) {
+      activeObserver.disconnect();
+    }
+
+    activeObserver = new MutationObserver(() => {
+      const btn = document.getElementById("create-topic");
+      if (btn && !btn.classList.contains(HIDDEN_CLASS)) {
+        btn.classList.add(HIDDEN_CLASS);
+      }
+    });
+
+    activeObserver.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["class", "style"],
+      subtree: true,
+      childList: true,
+    });
 
     const btn = document.createElement("button");
     btn.id = INJECTED_BTN_ID;
