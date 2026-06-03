@@ -1,0 +1,31 @@
+rules:
+  refresh: true
+  default: []
+  type: objects
+  schema:
+    name: New Topic Guard Rule
+    identifier: id
+    properties:
+      id:
+        type: string
+        required: true
+        validations:
+          min_length: 3
+      enabled_groups:
+        type: groups
+        required: true
+        validations:
+          min: 1
+      selected_categories:
+        type: categories
+      include_subcategories:
+        type: boolean
+      tooltip_message:
+        type: string
+        required: true
+        textarea: true
+        validations:
+          min_length: 5
+          max_length: 500
+      redirect_url:
+        type: string
