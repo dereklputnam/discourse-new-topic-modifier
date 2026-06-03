@@ -160,15 +160,34 @@ export default apiInitializer("1.8.0", (api) => {
       }
     }
 
-    // Find subscribe button within the same parent container as the real button
-    const parent = realBtn.closest(".navigation-controls, .list-controls, .nav-controls") || realBtn.parentNode;
-    const subscribeBtn = parent.querySelector("[class*='subscribe'], .subscribe-button, [data-subscribe]");
-    console.log("[NTG] Parent container:", parent.className);
-    console.log("[NTG] Subscribe button found:", subscribeBtn?.className || "none");
+    // Replace pencil icon with plus icon to match standard New Topic button
+    const iconEl = btn.querySelector(".d-icon");
+    if (iconEl) {
+      iconEl.className = iconEl.className.replace(/d-icon-\S+/, "d-icon-plus");
+      const useEl = iconEl.querySelector("use");
+      if (useEl) {
+        useEl.setAttribute("href", "#plus");
+        useEl.setAttribute("xlink:href", "#plus");
+      }
+      console.log("[NTG] Icon replaced with plus");
+    }
 
-    if (subscribeBtn) {
-      subscribeBtn.parentNode.insertBefore(btn, subscribeBtn.nextSibling);
-      console.log("[NTG] Injected after subscribe button");
+    // Find subscribe button by aria-label, title, or text content within parent container
+    const parent = realBtn.closest(".navigation-controls, .list-controls, .nav-controls") || realBtn.parentNode;
+    console.log("[NTG] Parent container:", parent.className);
+
+    const subscribeEl = Array.from(parent.querySelectorAll("button, [class*='subscribe']")).find((el) => {
+      const label = el.getAttribute("aria-label") || el.getAttribute("title") || el.textContent || "";
+      return label.toLowerCase().includes("subscribe");
+    });
+
+    // Insert after subscribe element or its closest block-level wrapper within parent
+    const insertAnchor = subscribeEl?.closest(".d-combo-button, .btn-group") || subscribeEl;
+    console.log("[NTG] Subscribe element found:", insertAnchor?.className || "none");
+
+    if (insertAnchor && parent.contains(insertAnchor)) {
+      insertAnchor.parentNode.insertBefore(btn, insertAnchor.nextSibling);
+      console.log("[NTG] Injected after subscribe element");
     } else {
       realBtn.parentNode.insertBefore(btn, realBtn.nextSibling);
       console.log("[NTG] Injected after real button (no subscribe found)");
