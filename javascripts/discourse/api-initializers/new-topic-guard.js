@@ -10,6 +10,19 @@ export default apiInitializer("1.8.0", (api) => {
 
   const INJECTED_BTN_ID = "ntg-replacement-btn";
   const POPOVER_ID = "ntg-popover";
+  const HIDDEN_CLASS = "ntg-hidden";
+
+  // Inject CSS to hide the real button when rule matches
+  if (!document.getElementById("ntg-styles")) {
+    const style = document.createElement("style");
+    style.id = "ntg-styles";
+    style.textContent = `
+      #create-topic.${HIDDEN_CLASS} {
+        display: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
 
   // Convert [text](url) Markdown links to <a> tags and newlines to <br>.
   // Kept local to avoid async cook() complexity — only link syntax is needed.
@@ -27,7 +40,7 @@ export default apiInitializer("1.8.0", (api) => {
     document.getElementById(POPOVER_ID)?.remove();
     const realBtn = document.getElementById("create-topic");
     if (realBtn) {
-      realBtn.style.removeProperty("display");
+      realBtn.classList.remove(HIDDEN_CLASS);
     }
   }
 
@@ -117,12 +130,14 @@ export default apiInitializer("1.8.0", (api) => {
   function injectReplacementButton(rule) {
     const realBtn = document.getElementById("create-topic");
     if (!realBtn) {
+      console.log("[NTG] No #create-topic button found");
       return;
     }
 
     const tooltipHtml = renderLinks(rule.tooltip_message || "");
 
-    realBtn.style.display = "none";
+    realBtn.classList.add(HIDDEN_CLASS);
+    console.log("[NTG] Rule matched for group(s):", rule.enabled_groups, "Category:", rule.selected_categories || "all");
 
     const btn = document.createElement("button");
     btn.id = INJECTED_BTN_ID;
@@ -162,9 +177,12 @@ export default apiInitializer("1.8.0", (api) => {
     cleanup();
     setTimeout(() => {
       const categoryId = getCurrentCategoryId();
+      console.log("[NTG] Page change detected, current category:", categoryId);
       const rule = findMatchingRule(categoryId);
       if (rule) {
         injectReplacementButton(rule);
+      } else {
+        console.log("[NTG] No matching rule for this user/category");
       }
     }, 150);
   });
