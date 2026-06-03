@@ -25,6 +25,9 @@ export default apiInitializer("1.8.0", (api) => {
         opacity: 0.5 !important;
         cursor: not-allowed !important;
       }
+      #${INJECTED_BTN_ID}.ntg-redirect {
+        cursor: pointer !important;
+      }
       #${POPOVER_ID} a {
         color: var(--tertiary);
         text-decoration: underline;
@@ -150,6 +153,10 @@ export default apiInitializer("1.8.0", (api) => {
     btn.innerHTML = realBtn.innerHTML;
     btn.setAttribute("aria-disabled", "true");
     btn.setAttribute("type", "button");
+
+    if (rule.redirect_url) {
+      btn.classList.add("ntg-redirect");
+    }
 
     // Override label text if custom text is set
     if (rule.button_text) {
