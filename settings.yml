@@ -3,7 +3,7 @@ rules:
   default: []
   type: objects
   schema:
-    name: New Topic Guard Rule
+    name: New Topic Modification Rule
     identifier: id
     properties:
       id:
@@ -31,14 +31,15 @@ rules:
         default: ""
         choices:
           - ""
-          - "pencil-alt"
-          - "plus"
+          - "pencil"
           - "lock"
           - "ban"
           - "circle-info"
-          - "arrow-up-right-from-square"
           - "envelope"
-          - "hand"
+          - "flag"
+          - "shield-halved"
+          - "triangle-exclamation"
+          - "wrench"
       tooltip_message:
         type: string
         required: true
