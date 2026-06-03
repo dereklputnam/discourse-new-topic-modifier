@@ -20,6 +20,7 @@ rules:
           min: 1
       selected_categories:
         type: categories
+        description: "Leave empty to apply this rule on all category pages."
       include_subcategories:
         type: boolean
       button_text:
