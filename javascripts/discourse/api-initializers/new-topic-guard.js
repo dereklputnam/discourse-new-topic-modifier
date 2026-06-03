@@ -8,14 +8,15 @@ export default apiInitializer("1.8.0", (api) => {
 
   const site = api.container.lookup("service:site");
 
+  const INJECTED_BTN_ID = "ntg-replacement-btn";
   const POPOVER_ID = "ntg-popover";
 
-  // Inject CSS for disabled button styling
+  // Inject CSS for button styling
   if (!document.getElementById("ntg-styles")) {
     const style = document.createElement("style");
     style.id = "ntg-styles";
     style.textContent = `
-      .ntg-disabled {
+      #${INJECTED_BTN_ID} {
         opacity: 0.5 !important;
         cursor: not-allowed !important;
       }
@@ -122,37 +123,57 @@ export default apiInitializer("1.8.0", (api) => {
     return popover;
   }
 
-  function modifyButtonForRule(rule) {
+  function injectButtonAfterSubscribe(rule) {
     const realBtn = getCreateTopicButton();
     if (!realBtn) {
       console.log("[NTG] ERROR: No #create-topic or #custom-create-topic button found");
       return;
     }
 
-    console.log("[NTG] Found button:", realBtn.id, "Modifying for rule...");
+    console.log("[NTG] Found button:", realBtn.id, "Creating injected button...");
     const tooltipHtml = renderLinks(rule.tooltip_message || "");
 
-    realBtn.classList.add("ntg-disabled");
-    console.log("[NTG] Rule matched for group(s):", rule.enabled_groups, "Category:", rule.selected_categories || "all");
+    // Create replacement button (copy from real button to preserve icon)
+    const btn = document.createElement("button");
+    btn.id = INJECTED_BTN_ID;
+    btn.className = realBtn.className;
+    btn.innerHTML = realBtn.innerHTML;
+    btn.setAttribute("aria-disabled", "true");
 
-    // Update button text if custom text is provided
+    // Update button text if custom text provided
     if (rule.button_text) {
-      const label = realBtn.querySelector(".d-button-label");
+      const label = btn.querySelector(".d-button-label");
       if (label) {
         label.textContent = rule.button_text;
-        console.log("[NTG] Button text updated to:", rule.button_text);
       }
     }
 
-    // Prevent composer from opening on click
-    realBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (rule.redirect_url) {
-        window.location.href = rule.redirect_url;
-      }
-    }, true);
+    // Find subscribe button to position after it
+    const subscribeBtn = document.querySelector("[class*='subscribe']") || realBtn.parentElement.querySelector("[class*='subscribe']");
+    let insertAfter = realBtn;
 
+    if (subscribeBtn) {
+      console.log("[NTG] Found subscribe button, positioning after it");
+      insertAfter = subscribeBtn;
+    }
+
+    insertAfter.parentNode.insertBefore(btn, insertAfter.nextSibling);
+    console.log("[NTG] Injected button created");
+
+    // Hide real button
+    realBtn.style.display = "none";
+    console.log("[NTG] Real button hidden");
+
+    // Handle click
+    if (rule.redirect_url) {
+      btn.addEventListener("click", () => {
+        window.location.href = rule.redirect_url;
+      });
+    } else {
+      btn.addEventListener("click", (e) => e.preventDefault());
+    }
+
+    // Popover handling
     let popover = null;
     let popoverTimeout = null;
 
@@ -160,7 +181,7 @@ export default apiInitializer("1.8.0", (api) => {
       clearTimeout(popoverTimeout);
       if (popover) return;
       popover = createPopover(tooltipHtml);
-      positionPopover(popover, realBtn);
+      positionPopover(popover, btn);
       console.log("[NTG] Popover shown");
     }
 
@@ -172,8 +193,8 @@ export default apiInitializer("1.8.0", (api) => {
       }, 200);
     }
 
-    realBtn.addEventListener("mouseenter", showPopover);
-    realBtn.addEventListener("mouseleave", hidePopover);
+    btn.addEventListener("mouseenter", showPopover);
+    btn.addEventListener("mouseleave", hidePopover);
 
     // Keep popover visible when hovering over it
     document.addEventListener("mouseover", (e) => {
@@ -183,17 +204,18 @@ export default apiInitializer("1.8.0", (api) => {
     });
 
     document.addEventListener("mouseout", (e) => {
-      if (e.target.closest(`#${POPOVER_ID}`) && !e.target.closest(`#create-topic, #custom-create-topic`)) {
+      if (e.target.closest(`#${POPOVER_ID}`) && !e.target.closest(`#${INJECTED_BTN_ID}`)) {
         hidePopover();
       }
     });
   }
 
   function cleanup() {
+    document.getElementById(INJECTED_BTN_ID)?.remove();
     document.getElementById(POPOVER_ID)?.remove();
     const realBtn = getCreateTopicButton();
     if (realBtn) {
-      realBtn.classList.remove("ntg-disabled");
+      realBtn.style.removeProperty("display");
     }
   }
 
@@ -208,7 +230,7 @@ export default apiInitializer("1.8.0", (api) => {
       const rule = findMatchingRule(categoryId);
       if (rule) {
         console.log("[NTG] ✓ RULE MATCHED:", rule.id);
-        modifyButtonForRule(rule);
+        injectButtonAfterSubscribe(rule);
       } else {
         console.log("[NTG] ✗ No matching rule for this user/category");
       }
