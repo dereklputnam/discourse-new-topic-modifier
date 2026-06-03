@@ -29,7 +29,7 @@ rules:
         type: enum
         default: ""
         choices:
-          - ""
+          - "default"
           - "pencil"
           - "lock"
           - "ban"

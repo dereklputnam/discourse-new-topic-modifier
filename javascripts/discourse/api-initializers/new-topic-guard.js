@@ -167,7 +167,7 @@ export default apiInitializer("1.8.0", (api) => {
     }
 
     // Swap icon if specified in rule, otherwise keep the real button's icon
-    if (rule.icon) {
+    if (rule.icon && rule.icon !== "default") {
       const iconEl = btn.querySelector(".d-icon");
       if (iconEl) {
         // SVG elements use SVGAnimatedString for className — must use classList
