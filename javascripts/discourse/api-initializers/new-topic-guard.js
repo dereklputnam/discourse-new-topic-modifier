@@ -84,17 +84,16 @@ export default apiInitializer("1.8.0", (api) => {
   function findMatchingRule(categoryId) {
     const rules = settings.rules || [];
     for (const rule of rules) {
-      console.log("[NTG] Rule", rule.id, "enabled value:", rule.enabled, typeof rule.enabled);
-      // Treat missing/undefined as enabled; only skip if explicitly false-y
-      const isEnabled = rule.enabled === undefined || rule.enabled === null || rule.enabled === true || rule.enabled === "true" || rule.enabled === 1;
+      console.log("[NTG] Rule", rule.id, "disabled value:", rule.disabled, typeof rule.disabled);
+      if (rule.disabled) {
+        console.log("[NTG] Rule", rule.id, "is disabled, skipping");
+        continue;
+      }
       if (
-        isEnabled &&
         userMatchesGroups(rule.enabled_groups) &&
         categoryMatches(rule, categoryId)
       ) {
         return rule;
-      } else if (!isEnabled) {
-        console.log("[NTG] Rule", rule.id, "is disabled, skipping");
       }
     }
     return null;

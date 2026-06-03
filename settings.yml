@@ -3,7 +3,7 @@ rules:
   default: []
   type: objects
   schema:
-    name: New Topic Modification Rule
+    name: New Rule
     identifier: id
     properties:
       id:
@@ -11,9 +11,8 @@ rules:
         required: true
         validations:
           min_length: 3
-      enabled:
+      disabled:
         type: boolean
-        default: true
       enabled_groups:
         type: groups
         required: true
