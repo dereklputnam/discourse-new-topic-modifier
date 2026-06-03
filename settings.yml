@@ -11,7 +11,7 @@ rules:
         required: true
         validations:
           min_length: 3
-      disabled:
+      enabled:
         type: boolean
       enabled_groups:
         type: groups

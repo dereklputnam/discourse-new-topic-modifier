@@ -84,9 +84,9 @@ export default apiInitializer("1.8.0", (api) => {
   function findMatchingRule(categoryId) {
     const rules = settings.rules || [];
     for (const rule of rules) {
-      console.log("[NTG] Rule", rule.id, "disabled value:", rule.disabled, typeof rule.disabled);
-      if (rule.disabled) {
-        console.log("[NTG] Rule", rule.id, "is disabled, skipping");
+      console.log("[NTG] Rule", rule.id, "enabled:", rule.enabled);
+      if (rule.enabled !== true) {
+        console.log("[NTG] Rule", rule.id, "not enabled, skipping");
         continue;
       }
       if (
