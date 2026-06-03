@@ -101,8 +101,9 @@ export default apiInitializer("1.8.0", (api) => {
   function positionPopover(popover, anchorBtn) {
     const rect = anchorBtn.getBoundingClientRect();
     const popoverHeight = popover.offsetHeight;
+    const popoverWidth = popover.offsetWidth;
     const top = rect.top + window.scrollY - popoverHeight - 8;
-    const left = rect.left + window.scrollX;
+    const left = rect.left + window.scrollX + rect.width / 2 - popoverWidth / 2;
     popover.style.top = `${top}px`;
     popover.style.left = `${left}px`;
   }
