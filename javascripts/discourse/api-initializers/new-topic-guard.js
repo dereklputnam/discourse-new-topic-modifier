@@ -42,7 +42,7 @@ export default apiInitializer("1.8.0", (api) => {
     }
     document.getElementById(INJECTED_BTN_ID)?.remove();
     document.getElementById(POPOVER_ID)?.remove();
-    const realBtn = document.getElementById("create-topic");
+    const realBtn = getCreateTopicButton();
     if (realBtn) {
       realBtn.classList.remove(HIDDEN_CLASS);
     }
@@ -133,10 +133,14 @@ export default apiInitializer("1.8.0", (api) => {
 
   let activeObserver = null;
 
+  function getCreateTopicButton() {
+    return document.getElementById("create-topic") || document.getElementById("custom-create-topic");
+  }
+
   function injectReplacementButton(rule) {
-    const realBtn = document.getElementById("create-topic");
+    const realBtn = getCreateTopicButton();
     if (!realBtn) {
-      console.log("[NTG] No #create-topic button found");
+      console.log("[NTG] No #create-topic or #custom-create-topic button found");
       return;
     }
 
@@ -151,7 +155,7 @@ export default apiInitializer("1.8.0", (api) => {
     }
 
     activeObserver = new MutationObserver(() => {
-      const btn = document.getElementById("create-topic");
+      const btn = getCreateTopicButton();
       if (btn && !btn.classList.contains(HIDDEN_CLASS)) {
         btn.classList.add(HIDDEN_CLASS);
       }
