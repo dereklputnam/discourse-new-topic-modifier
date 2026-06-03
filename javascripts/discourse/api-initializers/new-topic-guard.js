@@ -10,12 +10,17 @@ export default apiInitializer("1.8.0", (api) => {
 
   const INJECTED_BTN_ID = "ntg-replacement-btn";
   const POPOVER_ID = "ntg-popover";
+  const BODY_CLASS = "ntg-active";
 
-  // Inject CSS for button styling
+  // Persistent CSS in <head> — survives Discourse re-renders unlike inline styles
   if (!document.getElementById("ntg-styles")) {
     const style = document.createElement("style");
     style.id = "ntg-styles";
     style.textContent = `
+      body.${BODY_CLASS} #create-topic,
+      body.${BODY_CLASS} #custom-create-topic {
+        display: none !important;
+      }
       #${INJECTED_BTN_ID} {
         opacity: 0.5 !important;
         cursor: not-allowed !important;
@@ -123,48 +128,53 @@ export default apiInitializer("1.8.0", (api) => {
     return popover;
   }
 
-  function injectButtonAfterSubscribe(rule) {
+  function injectButton(rule) {
     const realBtn = getCreateTopicButton();
     if (!realBtn) {
       console.log("[NTG] ERROR: No #create-topic or #custom-create-topic button found");
       return;
     }
 
-    console.log("[NTG] Found button:", realBtn.id, "Creating injected button...");
+    console.log("[NTG] Found real button:", realBtn.id);
+
+    // Hide real button via body class — persists through Discourse re-renders
+    document.body.classList.add(BODY_CLASS);
+    console.log("[NTG] Added body class:", BODY_CLASS, "— real button should be hidden");
+
     const tooltipHtml = renderLinks(rule.tooltip_message || "");
 
-    // Create replacement button (copy from real button to preserve icon)
+    // Build the injected button from the real button's classes + HTML
     const btn = document.createElement("button");
     btn.id = INJECTED_BTN_ID;
     btn.className = realBtn.className;
     btn.innerHTML = realBtn.innerHTML;
     btn.setAttribute("aria-disabled", "true");
+    btn.setAttribute("type", "button");
 
-    // Update button text if custom text provided
+    // Override label text if custom text is set
     if (rule.button_text) {
       const label = btn.querySelector(".d-button-label");
       if (label) {
         label.textContent = rule.button_text;
+        console.log("[NTG] Button text set to:", rule.button_text);
       }
     }
 
-    // Find subscribe button to position after it
-    const subscribeBtn = document.querySelector("[class*='subscribe']") || realBtn.parentElement.querySelector("[class*='subscribe']");
-    let insertAfter = realBtn;
+    // Find subscribe button within the same parent container as the real button
+    const parent = realBtn.closest(".navigation-controls, .list-controls, .nav-controls") || realBtn.parentNode;
+    const subscribeBtn = parent.querySelector("[class*='subscribe'], .subscribe-button, [data-subscribe]");
+    console.log("[NTG] Parent container:", parent.className);
+    console.log("[NTG] Subscribe button found:", subscribeBtn?.className || "none");
 
     if (subscribeBtn) {
-      console.log("[NTG] Found subscribe button, positioning after it");
-      insertAfter = subscribeBtn;
+      subscribeBtn.parentNode.insertBefore(btn, subscribeBtn.nextSibling);
+      console.log("[NTG] Injected after subscribe button");
+    } else {
+      realBtn.parentNode.insertBefore(btn, realBtn.nextSibling);
+      console.log("[NTG] Injected after real button (no subscribe found)");
     }
 
-    insertAfter.parentNode.insertBefore(btn, insertAfter.nextSibling);
-    console.log("[NTG] Injected button created");
-
-    // Hide real button
-    realBtn.style.display = "none";
-    console.log("[NTG] Real button hidden");
-
-    // Handle click
+    // Click handling
     if (rule.redirect_url) {
       btn.addEventListener("click", () => {
         window.location.href = rule.redirect_url;
@@ -189,14 +199,12 @@ export default apiInitializer("1.8.0", (api) => {
       popoverTimeout = setTimeout(() => {
         popover?.remove();
         popover = null;
-        console.log("[NTG] Popover hidden");
       }, 200);
     }
 
     btn.addEventListener("mouseenter", showPopover);
     btn.addEventListener("mouseleave", hidePopover);
 
-    // Keep popover visible when hovering over it
     document.addEventListener("mouseover", (e) => {
       if (e.target.closest(`#${POPOVER_ID}`)) {
         clearTimeout(popoverTimeout);
@@ -211,28 +219,24 @@ export default apiInitializer("1.8.0", (api) => {
   }
 
   function cleanup() {
+    document.body.classList.remove(BODY_CLASS);
     document.getElementById(INJECTED_BTN_ID)?.remove();
     document.getElementById(POPOVER_ID)?.remove();
-    const realBtn = getCreateTopicButton();
-    if (realBtn) {
-      realBtn.style.removeProperty("display");
-    }
   }
 
   api.onPageChange(() => {
     console.log("[NTG] ========== PAGE CHANGE ==========");
-    console.log("[NTG] Current user:", currentUser.username);
-    console.log("[NTG] User groups:", currentUser.groups?.map(g => ({ id: g.id, name: g.name })));
+    console.log("[NTG] User:", currentUser.username, "| Groups:", currentUser.groups?.map(g => `${g.name}(${g.id})`).join(", "));
     cleanup();
     setTimeout(() => {
       const categoryId = getCurrentCategoryId();
-      console.log("[NTG] Current category ID:", categoryId);
+      console.log("[NTG] Category ID:", categoryId);
       const rule = findMatchingRule(categoryId);
       if (rule) {
         console.log("[NTG] ✓ RULE MATCHED:", rule.id);
-        injectButtonAfterSubscribe(rule);
+        injectButton(rule);
       } else {
-        console.log("[NTG] ✗ No matching rule for this user/category");
+        console.log("[NTG] ✗ No matching rule");
       }
     }, 150);
   });
