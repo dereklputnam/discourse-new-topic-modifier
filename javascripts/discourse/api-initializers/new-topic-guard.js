@@ -20,6 +20,9 @@ export default apiInitializer("1.8.0", (api) => {
       #create-topic.${HIDDEN_CLASS},
       #custom-create-topic.${HIDDEN_CLASS} {
         display: none !important;
+        visibility: hidden !important;
+        position: absolute !important;
+        left: -9999px !important;
       }
       #ntg-replacement-btn {
         border: 2px dashed #ff6b6b !important;
@@ -129,7 +132,6 @@ export default apiInitializer("1.8.0", (api) => {
       fontSize: "0.875em",
       lineHeight: "1.4",
       boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-      pointerEvents: "none",
     });
     document.body.appendChild(popover);
     return popover;
@@ -200,15 +202,38 @@ export default apiInitializer("1.8.0", (api) => {
     }
 
     let popover = null;
+    let popoverTimeout = null;
 
-    btn.addEventListener("mouseenter", () => {
+    function showPopover() {
+      clearTimeout(popoverTimeout);
+      if (popover) return;
       popover = createPopover(tooltipHtml);
       positionPopover(popover, btn);
+      console.log("[NTG] Popover shown");
+    }
+
+    function hidePopover() {
+      popoverTimeout = setTimeout(() => {
+        popover?.remove();
+        popover = null;
+        console.log("[NTG] Popover hidden");
+      }, 200);
+    }
+
+    btn.addEventListener("mouseenter", showPopover);
+    btn.addEventListener("mouseleave", hidePopover);
+
+    // Keep popover visible when hovering over it
+    document.addEventListener("mouseover", (e) => {
+      if (e.target.closest(`#${POPOVER_ID}`)) {
+        clearTimeout(popoverTimeout);
+      }
     });
 
-    btn.addEventListener("mouseleave", () => {
-      popover?.remove();
-      popover = null;
+    document.addEventListener("mouseout", (e) => {
+      if (e.target.closest(`#${POPOVER_ID}`) && !e.target.closest(`#${INJECTED_BTN_ID}`)) {
+        hidePopover();
+      }
     });
 
     realBtn.parentNode.insertBefore(btn, realBtn.nextSibling);
