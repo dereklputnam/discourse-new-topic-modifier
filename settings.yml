@@ -30,5 +30,3 @@ rules:
         validations:
           min_length: 5
           max_length: 500
-      redirect_url:
-        type: string

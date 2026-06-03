@@ -25,9 +25,6 @@ export default apiInitializer("1.8.0", (api) => {
         opacity: 0.5 !important;
         cursor: not-allowed !important;
       }
-      #${INJECTED_BTN_ID}.ntg-redirect {
-        cursor: pointer !important;
-      }
       #${POPOVER_ID} a {
         color: var(--tertiary);
         text-decoration: underline;
@@ -154,9 +151,6 @@ export default apiInitializer("1.8.0", (api) => {
     btn.setAttribute("aria-disabled", "true");
     btn.setAttribute("type", "button");
 
-    if (rule.redirect_url) {
-      btn.classList.add("ntg-redirect");
-    }
 
     // Override label text if custom text is set
     if (rule.button_text) {
@@ -205,14 +199,7 @@ export default apiInitializer("1.8.0", (api) => {
       console.log("[NTG] Injected after real button (no subscribe found)");
     }
 
-    // Click handling
-    if (rule.redirect_url) {
-      btn.addEventListener("click", () => {
-        window.location.href = rule.redirect_url;
-      });
-    } else {
-      btn.addEventListener("click", (e) => e.preventDefault());
-    }
+    btn.addEventListener("click", (e) => e.preventDefault());
 
     // Popover handling
     let popover = null;
