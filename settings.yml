@@ -31,6 +31,7 @@ rules:
         choices:
           - "default"
           - "pencil"
+          - "plus"
           - "lock"
           - "ban"
           - "circle-info"
